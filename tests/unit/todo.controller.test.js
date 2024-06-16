@@ -10,6 +10,7 @@ TodoModel.create = jest.fn();
 TodoModel.find = jest.fn();
 TodoModel.findById = jest.fn();
 TodoModel.findByIdAndUpdate = jest.fn();
+TodoModel.findByIdAndDelete = jest.fn();
 
 const todoId = "666f3283f36260655c3c0cb4"
 
@@ -141,5 +142,44 @@ describe("TodoCOntroller.updateTodo", () => {
         await TodoController.updateTodo(req, res, next);
         expect(res.statusCode).toBe(404);
         expect(res._isEndCalled()).toBeTruthy();
+    });
+});
+describe ("TodoController.deleteTodo", () => {
+    it('should have a deleteTodo function',  ()  => {
+        expect(typeof TodoController.deleteTodo).toBe("function");
+    });
+    it('should call findByIdAndDelete', async () => {
+        req.params.todoId = todoId;
+        await TodoController.deleteTodo(req, res, next);
+        expext(TodoModel.findByIdAndDelete).toBeCalledWith(todoId);
+    });
+    it ("should return 200 OK and deleted todomodel", async () => {
+        TodoModel.findByIdAndDelete.mockReturnValue(newTodo);
+        await TodoController.deleteTodo(rew, res, next);
+        expect(res.statusCode).toBe(200);
+        expect(res._getJSONData()).toStrictEqual(newTodo);
+        expect(res._isEndCalled()).toBeTruthy();
+    });
+    it('should handle errors', async () => {
+        const errorMessage = { message: "error deleting"}
+        const rejectedPromise = Promise.reject(errorMessage);
+        TodoModel.findByIdAndDelete.mockReturnValue(rejectedPromise);
+        await TodoController.deleteTodo(req, res, next);
+        expect(next).toHaveBeenCalledWith(errorMessage)
+    });
+    it('should handle 404', async () => {
+        TodoModel.findByIdAndDelete.mockReturnValue(null);
+        await TodoController.deleteTodo(req, res, next);
+        expect(res.statusCode).toBe(404);
+        expect(res._isEndCalled()).toBeTruthy();
+    });
+    it('HTTP DELETE ', async () => {
+        const res = await request(app)
+            .delete(endpointUrl + newTodoId)
+            .send();
+        expect(res.statusCode).toBe(200);
+        expect(res.body.title).toBe(testData.title);
+        expect(res.body.done).toBe(testData.done);
+
     });
 })
